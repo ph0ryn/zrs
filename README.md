@@ -43,3 +43,5 @@ completions:
 
 - [spec.md](docs/spec.md)
 - [architecture.md](docs/architecture.md)
+- [verification.md](docs/verification.md)
+- [development.md](docs/development.md)
