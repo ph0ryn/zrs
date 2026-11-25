@@ -1,0 +1,120 @@
+# Specification
+
+`zrs` は Zsh 専用の入力支援・補完ツールである。略語展開、スニペット挿入、カスタムファジー補完を YAML の宣言的設定で提供する。
+
+## スコープ
+
+### 対象
+
+- 略語展開（通常・グローバル・コンテキスト条件・コマンド評価展開、プレースホルダー対応）
+- スニペットのインタラクティブ検索・挿入（プレースホルダー対応）
+- 展開・挿入後のプレースホルダー間のカーソル移動
+- パターン一致によるカスタムファジー補完（プレビュー表示・複数選択・標準補完へのフォールバック）
+- YAML による宣言的設定の読み込みと検証
+
+### 対象外
+
+- Zsh 以外のシェル（Bash / Fish など）
+- 動的設定や組み込みスクリプト機能
+- コマンド履歴の独自管理（Atuin 等の専用ツールに委譲する）
+- ファジー検索 UI の独自実装
+
+## 機能仕様
+
+### 略語展開（Abbreviation）
+
+入力バッファ上の略語を、実行前に実際の文字列へ展開する。alias と異なり、コマンドライン上に展開後の文字列が残る。
+
+- **展開種別**: コマンド位置のみで展開する通常展開、位置を問わず展開するグローバル展開、入力バッファに対する正規表現のコンテキスト条件（`context.lbuffer` など）による条件付き展開に対応する。
+- **コマンド評価展開（`evaluate`）**: `evaluate: true` を指定した略語は、展開先文字列をそのまま挿入せずシェルコマンドとして実行し、標準出力（末尾改行を除去）を展開結果とする。コマンドが非ゼロで終了した場合は展開を行わずエラーとして扱い、元の入力バッファを保持する。
+- **トリガーと制御**: Space や Enter などの操作で展開する。略語展開を挟まずにスペースを入力する操作と、略語展開の有効・無効を切り替える操作を提供する。
+- **文脈による展開可否**: 末尾の語が一致しても、コマンドライン上の文脈に応じて展開可否を判定する。`gs`、`sudo gs`、`cd /tmp && gs` のようなコマンド位置では展開し、`echo "gs"` のような引用符内では展開しない。閉じられていない引用符やコマンド置換（例: `echo $(gs`）など、文脈が確定しない未完成構文での扱い境界は明示的に定める。
+- **プレースホルダー**: 展開先文字列にプレースホルダー（例: `{{message}}`）を含められる。
+
+### スニペット（Snippet）
+
+略語展開とは独立した定義として管理し、対話検索の候補に短い略語が混ざらないようにする。
+
+- 登録済みスニペットをインタラクティブに検索し、現在のカーソル位置へ挿入する。
+- 本文にプレースホルダー（例: `{{image}}`）を埋め込める。
+- 略語展開・スニペット挿入のいずれでも、挿入後にプレースホルダー間をカーソル移動できる。
+
+### カスタムファジー補完（Fuzzy Completion）
+
+- 現在の入力行が設定されたパターンに一致したとき、外部コマンドの出力を候補としてインタラクティブに選択し、入力行へ挿入する。
+- 候補のプレビュー表示と複数選択に対応する。
+- いずれの補完ルールにも一致しない場合は、Zsh の標準補完へフォールバックする。
+- Git 補完のような特定コマンド向け補完も、専用の組み込み機能ではなく設定ルールとして記述できる。
+
+### 設定（YAML）
+
+設定は YAML による宣言的記述のみを扱う。構文エラー、必須項目の欠落、未知のフィールド、不正な正規表現を含む設定は黙って無視せずエラーとして報告する。
+
+- **配置パス**: `$XDG_CONFIG_HOME/zrs/config.yaml`（`$XDG_CONFIG_HOME` 未設定時は `~/.config/zrs/config.yaml`）の単一ファイル。
+- **トップレベルキー**: `abbreviations`、`snippets`、`completions` はいずれも任意（省略時は空リスト）。
+- **優先順位**: 複数の略語または補完ルールが一致した場合は、記述順の先頭を採用する。
+
+#### フィールド契約
+
+| セクション | フィールド | 必須 | 既定値 | 意味・制約 |
+| --- | --- | --- | --- | --- |
+| `abbreviations[]` | `keyword` | 必須 | - | 展開対象の末尾語（完全一致） |
+| `abbreviations[]` | `expand` | 必須 | - | 展開先文字列（`evaluate: true` 時はコマンド） |
+| `abbreviations[]` | `global` | 任意 | `false` | `true` のときコマンド位置以外でも展開 |
+| `abbreviations[]` | `context` | 任意 | なし | `lbuffer` / `rbuffer` / `buffer` の正規表現条件（AND 評価） |
+| `abbreviations[]` | `evaluate` | 任意 | `false` | `true` のとき `expand` を実行し標準出力を展開 |
+| `snippets[]` | `name` | 必須 | - | 対話検索時に表示する名称 |
+| `snippets[]` | `body` | 必須 | - | 挿入する本文 |
+| `completions[]` | `name` | 必須 | - | 補完ルールの名称 |
+| `completions[]` | `pattern` | 必須 | - | カーソル左側の入力行に照合する正規表現 |
+| `completions[]` | `source` | 必須 | - | 候補一覧を出力する外部コマンド |
+| `completions[]` | `preview` | 任意 | なし | 候補プレビュー用の外部コマンド |
+| `completions[]` | `multi` | 任意 | `false` | 複数選択の可否 |
+
+`abbreviations[]` の条件評価は次のルールに従う。
+
+- `context` 未指定かつ `global: false` の場合はコマンド位置でのみ展開する。
+- `context` を指定した場合はコマンド位置に限定せず、`context` 内の条件をすべて満たしたときに展開する（`global: true` との同時指定はエラーとする）。
+- `context.lbuffer` は展開対象キーワードを除いたカーソル左側の文字列に対して照合する。`context.rbuffer` はカーソル右側、`context.buffer` は行全体を対象とする。
+
+設定例。
+
+```yaml
+abbreviations:
+  - keyword: gs
+    expand: git status --short --branch
+
+  - keyword: gc
+    expand: git commit -m '{{message}}'
+
+  - keyword: rg
+    expand: rg --hidden
+    global: true
+
+  - keyword: B
+    expand: git symbolic-ref --short HEAD
+    context:
+      lbuffer: '^git\s+checkout\s+'
+    evaluate: true
+
+snippets:
+  - name: docker run
+    body: docker run --rm -it '{{image}}'
+
+completions:
+  - name: git switch
+    pattern: '^git switch\s'
+    source: git branch --format='%(refname:short)'
+    preview: git log --oneline -20 {}
+
+  - name: cd
+    pattern: '^cd\s'
+    source: fd --type d
+    preview: eza --tree --level=2 {}
+```
+
+## 非機能・共存要件
+
+- **他プラグインとの共存**: `zsh-autosuggestions`、`zsh-syntax-highlighting`、`fzf-tab`、`zsh-vi-mode`、`Atuin` などの Zsh プラグインと併用しても、キーバインドや標準補完へのフォールバックが破綻しないこと。
+- **文字とクォーティングの正確性**: 日本語などのマルチバイト文字を含む入力行でもカーソル位置がずれないこと。補完や展開の挿入結果がシェルのクォーティングを壊さないこと。
+- **入力応答性**: Space 押下時の略語展開や Tab 補完において、日常の対話入力を妨げる体感遅延を生じないこと。
