@@ -1,14 +1,24 @@
+use std::io::{self, Read, Write};
 use std::process::ExitCode;
 
 use clap::Parser;
-use zrs::ZSH_INIT_SCRIPT;
-use zrs::cli::{Cli, Command};
+use zrs::cli::{BufferArgs, Cli, Command};
+use zrs::error::ZrsError;
+use zrs::protocol::Outcome;
+use zrs::{ZSH_INIT_SCRIPT, abbrev, completion, config, snippet, template};
 
 fn main() -> ExitCode {
-    let cli = Cli::parse();
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) => {
+            let code = u8::from(error.use_stderr());
+            let _ = error.print();
+            return ExitCode::from(code);
+        }
+    };
 
-    match run(cli) {
-        Ok(()) => ExitCode::SUCCESS,
+    match run(cli.command) {
+        Ok(code) => ExitCode::from(code),
         Err(err) => {
             eprintln!("zrs: {err}");
             ExitCode::FAILURE
@@ -16,19 +26,51 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(cli: Cli) -> Result<(), zrs::error::ZrsError> {
-    match cli.command {
-        Command::Init => {
-            print!("{ZSH_INIT_SCRIPT}");
-            Ok(())
+fn run(command: Command) -> Result<u8, ZrsError> {
+    let outcome: Outcome = match command {
+        Command::Init { no_keybinds } => {
+            let mut out = io::stdout().lock();
+            out.write_all(ZSH_INIT_SCRIPT.as_bytes())?;
+            if !no_keybinds {
+                writeln!(out, "_zrs_bind_defaults")?;
+            }
+            return Ok(0);
         }
         Command::Validate { config } => {
             let path = match config {
                 Some(path) => path,
-                None => zrs::config::default_config_path()?,
+                None => config::default_config_path()?,
             };
-            let _ = zrs::config::load_from_path(&path)?;
-            Ok(())
+            config::load_from_path(&path)?;
+            return Ok(0);
         }
-    }
+        Command::Expand(BufferArgs { lbuffer, rbuffer }) => {
+            let cfg = config::load_interactive()?;
+            let mut tokens = String::new();
+            io::stdin().read_to_string(&mut tokens)?;
+            if !tokens.is_empty() && !tokens.ends_with('\0') {
+                return Err(ZrsError::Protocol("input tokens are not NUL-terminated"));
+            }
+            let tokens: Vec<_> = tokens.split_terminator('\0').collect();
+            abbrev::expand(&cfg.abbreviations, &lbuffer, &rbuffer, &tokens)?.into()
+        }
+        Command::Placeholder(BufferArgs { lbuffer, rbuffer }) => {
+            template::next(&lbuffer, &rbuffer).into()
+        }
+        Command::Snippet(BufferArgs { lbuffer, rbuffer }) => {
+            snippet::select(&config::load_interactive()?.snippets, &lbuffer, &rbuffer)?
+        }
+        Command::Complete {
+            buffer: BufferArgs { lbuffer, rbuffer },
+            word,
+            query,
+        } => completion::complete(
+            &config::load_interactive()?.completions,
+            &lbuffer,
+            &rbuffer,
+            word.as_deref(),
+            query.as_deref(),
+        )?,
+    };
+    outcome.write(io::stdout().lock())
 }

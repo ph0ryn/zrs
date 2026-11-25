@@ -3,6 +3,7 @@
   rustPlatform,
   makeWrapper,
   fzf,
+  zsh,
 }:
 
 let
@@ -30,6 +31,8 @@ rustPlatform.buildRustPackage {
   nativeBuildInputs = [
     makeWrapper
   ];
+
+  nativeCheckInputs = [ zsh ];
 
   postInstall = ''
     wrapProgram "$out/bin/zrs" \

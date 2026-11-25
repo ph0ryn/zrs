@@ -20,6 +20,7 @@ nix develop
 | `just test` | Rust の単体テスト・結合テストを実行 |
 | `just lint` | `cargo clippy --all-targets -- -D warnings` を実行 |
 | `just zsh-check` | `zsh -n shell/zrs.zsh` で ZLE スクリプトの構文を検証 |
+| `just zsh-test` | 擬似端末で ZLE のキー操作と実際の `fzf` 選択を検証 |
 | `just try` | デバッグビルドを使い、隔離された `ZDOTDIR` と [examples/config.yaml](../examples/config.yaml) で対話 Zsh を起動 |
 | `just nix-check` | `nix flake check` でサンドボックス内のビルド・テスト・静的チェックを実行 |
 | `just nix-build` | リリース用 Nix パッケージをビルド |

@@ -34,6 +34,17 @@ pub fn load_from_path(path: &Path) -> Result<Config, ZrsError> {
     parse_and_validate(&raw)
 }
 
+pub fn load_interactive() -> Result<Config, ZrsError> {
+    match load_from_path(&default_config_path()?) {
+        Err(ZrsError::ConfigRead { source, .. })
+            if source.kind() == std::io::ErrorKind::NotFound =>
+        {
+            Ok(Config::default())
+        }
+        result => result,
+    }
+}
+
 pub fn parse_and_validate(yaml: &str) -> Result<Config, ZrsError> {
     let raw: schema::RawConfig = serde_saphyr::from_str(yaml)?;
     validate::validate(raw)

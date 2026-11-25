@@ -96,6 +96,19 @@
             zsh -n ${./shell/zrs.zsh}
             touch "$out"
           '';
+
+          zsh-e2e =
+            pkgs.runCommand "zrs-zsh-e2e"
+              {
+                nativeBuildInputs = [ pkgs.zsh ];
+                env = pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+                  LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
+                };
+              }
+              ''
+                zsh ${./tests/zsh/run.zsh} ${nixpkgs.lib.getExe zrs}
+                touch "$out"
+              '';
         }
       );
     };

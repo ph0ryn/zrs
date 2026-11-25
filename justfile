@@ -18,6 +18,10 @@ zsh-check:
 
 check: fmt-check lint test zsh-check
 
+zsh-test:
+  cargo build
+  zsh tests/zsh/run.zsh
+
 build:
   cargo build --release
 

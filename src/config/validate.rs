@@ -3,7 +3,7 @@ use regex::Regex;
 use crate::config::schema::{RawAbbreviation, RawCompletion, RawConfig, RawContext, RawSnippet};
 use crate::error::ZrsError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Config {
     pub abbreviations: Vec<Abbreviation>,
     pub snippets: Vec<Snippet>,
