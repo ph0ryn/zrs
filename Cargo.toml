@@ -1,0 +1,30 @@
+[package]
+name = "zrs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+description = "Zsh abbreviation expansion, snippet insertion, and custom fuzzy completion configured in YAML"
+repository = "https://github.com/ph0ryn/zrs"
+
+[dependencies]
+clap = { version = "4.6", features = ["derive"] }
+regex = "1.13"
+serde = { version = "1.0", features = ["derive"] }
+serde-saphyr = { version = "2.2", default-features = false, features = ["deserialize"] }
+thiserror = "2.0"
+
+[dev-dependencies]
+assert_cmd = "2.2"
+predicates = "3.1"
+tempfile = "3.27"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

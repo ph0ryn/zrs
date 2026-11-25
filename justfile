@@ -1,0 +1,48 @@
+default:
+  @just --list
+
+fmt:
+  cargo fmt
+
+fmt-check:
+  cargo fmt --check
+
+lint:
+  cargo clippy --all-targets -- -D warnings
+
+test:
+  cargo test
+
+zsh-check:
+  zsh -n shell/zrs.zsh
+
+check: fmt-check lint test zsh-check
+
+build:
+  cargo build --release
+
+# Launch an isolated interactive zsh with the debug build of zrs
+try config="examples/config.yaml":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  cargo build
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir"' EXIT
+  mkdir -p "$tmpdir/zdotdir" "$tmpdir/config/zrs"
+  cp "{{config}}" "$tmpdir/config/zrs/config.yaml"
+  cat > "$tmpdir/zdotdir/.zshrc" <<'EOF'
+  autoload -Uz compinit && compinit -d "$ZDOTDIR/.zcompdump"
+  PROMPT='[zrs-try] %~ %# '
+  eval "$(zrs init)"
+  EOF
+  env \
+    PATH="$PWD/target/debug:$PATH" \
+    ZDOTDIR="$tmpdir/zdotdir" \
+    XDG_CONFIG_HOME="$tmpdir/config" \
+    zsh -i
+
+nix-check:
+  nix flake check
+
+nix-build:
+  nix build

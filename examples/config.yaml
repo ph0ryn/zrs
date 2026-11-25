@@ -1,0 +1,31 @@
+abbreviations:
+  - keyword: gs
+    expand: git status --short --branch
+
+  - keyword: gc
+    expand: git commit -m '{{message}}'
+
+  - keyword: rg
+    expand: rg --hidden
+    global: true
+
+  - keyword: B
+    expand: git symbolic-ref --short HEAD
+    context:
+      lbuffer: '^git\s+checkout\s+'
+    evaluate: true
+
+snippets:
+  - name: docker run
+    body: docker run --rm -it '{{image}}'
+
+completions:
+  - name: git switch
+    pattern: '^git switch\s'
+    source: git branch --format='%(refname:short)'
+    preview: git log --oneline -20 {}
+
+  - name: cd
+    pattern: '^cd\s'
+    source: fd --type d
+    preview: eza --tree --level=2 {}
