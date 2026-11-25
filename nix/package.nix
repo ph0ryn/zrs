@@ -1,7 +1,7 @@
 {
   lib,
   rustPlatform,
-  makeWrapper,
+  makeBinaryWrapper,
   fzf,
   zsh,
 }:
@@ -29,7 +29,7 @@ rustPlatform.buildRustPackage {
   };
 
   nativeBuildInputs = [
-    makeWrapper
+    makeBinaryWrapper
   ];
 
   nativeCheckInputs = [ zsh ];
