@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use regex::Regex;
 
 use crate::config::schema::{RawAbbreviation, RawCompletion, RawConfig, RawContext, RawSnippet};
@@ -42,11 +44,12 @@ pub struct Completion {
 }
 
 pub fn validate(raw: RawConfig) -> Result<Config, ZrsError> {
+    let mut patterns = HashMap::new();
     let abbreviations = raw
         .abbreviations
         .into_iter()
         .enumerate()
-        .map(|(i, item)| validate_abbreviation(i, item))
+        .map(|(i, item)| validate_abbreviation(i, item, &mut patterns))
         .collect::<Result<Vec<_>, _>>()?;
 
     let snippets = raw
@@ -60,7 +63,7 @@ pub fn validate(raw: RawConfig) -> Result<Config, ZrsError> {
         .completions
         .into_iter()
         .enumerate()
-        .map(|(i, item)| validate_completion(i, item))
+        .map(|(i, item)| validate_completion(i, item, &mut patterns))
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(Config {
@@ -70,7 +73,11 @@ pub fn validate(raw: RawConfig) -> Result<Config, ZrsError> {
     })
 }
 
-fn validate_abbreviation(index: usize, raw: RawAbbreviation) -> Result<Abbreviation, ZrsError> {
+fn validate_abbreviation(
+    index: usize,
+    raw: RawAbbreviation,
+    patterns: &mut HashMap<String, Regex>,
+) -> Result<Abbreviation, ZrsError> {
     if raw.keyword.is_empty() {
         return Err(ZrsError::ConfigValidation(format!(
             "abbreviations[{index}].keyword must not be empty"
@@ -84,7 +91,7 @@ fn validate_abbreviation(index: usize, raw: RawAbbreviation) -> Result<Abbreviat
 
     let context = raw
         .context
-        .map(|ctx| compile_context(index, ctx))
+        .map(|ctx| compile_context(index, ctx, patterns))
         .transpose()?;
 
     Ok(Abbreviation {
@@ -96,26 +103,30 @@ fn validate_abbreviation(index: usize, raw: RawAbbreviation) -> Result<Abbreviat
     })
 }
 
-fn compile_context(index: usize, raw: RawContext) -> Result<CompiledContext, ZrsError> {
+fn compile_context(
+    index: usize,
+    raw: RawContext,
+    patterns: &mut HashMap<String, Regex>,
+) -> Result<CompiledContext, ZrsError> {
     if raw.lbuffer.is_none() && raw.rbuffer.is_none() && raw.buffer.is_none() {
         return Err(ZrsError::ConfigValidation(format!(
             "abbreviations[{index}].context must specify at least one of lbuffer, rbuffer, or buffer"
         )));
     }
 
+    let mut compile = |pattern: Option<String>, field| {
+        pattern
+            .map(|pattern| {
+                compile_regex(patterns, pattern, || {
+                    format!("abbreviations[{index}].context.{field}")
+                })
+            })
+            .transpose()
+    };
     Ok(CompiledContext {
-        lbuffer: raw
-            .lbuffer
-            .map(|p| compile_regex(&format!("abbreviations[{index}].context.lbuffer"), &p))
-            .transpose()?,
-        rbuffer: raw
-            .rbuffer
-            .map(|p| compile_regex(&format!("abbreviations[{index}].context.rbuffer"), &p))
-            .transpose()?,
-        buffer: raw
-            .buffer
-            .map(|p| compile_regex(&format!("abbreviations[{index}].context.buffer"), &p))
-            .transpose()?,
+        lbuffer: compile(raw.lbuffer, "lbuffer")?,
+        rbuffer: compile(raw.rbuffer, "rbuffer")?,
+        buffer: compile(raw.buffer, "buffer")?,
     })
 }
 
@@ -131,7 +142,11 @@ fn validate_snippet(index: usize, raw: RawSnippet) -> Result<Snippet, ZrsError> 
     })
 }
 
-fn validate_completion(index: usize, raw: RawCompletion) -> Result<Completion, ZrsError> {
+fn validate_completion(
+    index: usize,
+    raw: RawCompletion,
+    patterns: &mut HashMap<String, Regex>,
+) -> Result<Completion, ZrsError> {
     if raw.name.is_empty() {
         return Err(ZrsError::ConfigValidation(format!(
             "completions[{index}].name must not be empty"
@@ -142,7 +157,9 @@ fn validate_completion(index: usize, raw: RawCompletion) -> Result<Completion, Z
             "completions[{index}].source must not be empty"
         )));
     }
-    let pattern = compile_regex(&format!("completions[{index}].pattern"), &raw.pattern)?;
+    let pattern = compile_regex(patterns, raw.pattern, || {
+        format!("completions[{index}].pattern")
+    })?;
     Ok(Completion {
         name: raw.name,
         pattern,
@@ -152,9 +169,21 @@ fn validate_completion(index: usize, raw: RawCompletion) -> Result<Completion, Z
     })
 }
 
-fn compile_regex(field: &str, pattern: &str) -> Result<Regex, ZrsError> {
-    Regex::new(pattern).map_err(|source| ZrsError::InvalidRegex {
-        field: field.to_string(),
-        source,
-    })
+fn compile_regex(
+    patterns: &mut HashMap<String, Regex>,
+    pattern: String,
+    field: impl FnOnce() -> String,
+) -> Result<Regex, ZrsError> {
+    use std::collections::hash_map::Entry;
+
+    match patterns.entry(pattern) {
+        Entry::Occupied(entry) => Ok(entry.get().clone()),
+        Entry::Vacant(entry) => {
+            let regex = Regex::new(entry.key()).map_err(|source| ZrsError::InvalidRegex {
+                field: field(),
+                source,
+            })?;
+            Ok(entry.insert(regex).clone())
+        }
+    }
 }
