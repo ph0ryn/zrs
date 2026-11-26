@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify tag and Cargo.toml version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify version matches git tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import sys
+          import tomllib
+
+          tag = os.environ["TAG"]
+          if not tag.startswith("v"):
+              sys.exit(f"Tag must start with 'v': {tag}")
+          tag_version = tag[1:]
+
+          with open("Cargo.toml", "rb") as f:
+              cargo_version = tomllib.load(f)["package"]["version"]
+
+          if tag_version != cargo_version:
+              sys.exit(
+                  f"Version mismatch: tag is {tag!r} ({tag_version!r}), "
+                  f"but Cargo.toml has {cargo_version!r}"
+              )
+          print(f"Verified version: {cargo_version}")
+          PY
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            linker: aarch64-linux-gnu-gcc
+            apt_package: gcc-aarch64-linux-gnu
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install cross-compilation linker
+        if: matrix.apt_package != ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ${{ matrix.apt_package }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Build release binary
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: ${{ matrix.linker }}
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package archive
+        env:
+          TAG: ${{ github.ref_name }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          name="zrs-zsh-${TAG}-${TARGET}"
+          mkdir -p "dist/${name}"
+          cp "target/${TARGET}/release/zrs-zsh" "dist/${name}/zrs-zsh"
+          cp README.md "dist/${name}/README.md"
+          cp LICENSE "dist/${name}/LICENSE"
+          tar -C dist -czf "dist/${name}.tar.gz" "${name}"
+
+      - name: Upload archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zrs-zsh-${{ matrix.target }}
+          path: dist/zrs-zsh-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: zrs-zsh-*
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        working-directory: dist
+        run: |
+          extra_args=()
+          if [[ "${TAG}" == *-* ]]; then
+            extra_args+=(--prerelease)
+          fi
+          gh release create "${TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --generate-notes \
+            "${extra_args[@]}" \
+            *.tar.gz
