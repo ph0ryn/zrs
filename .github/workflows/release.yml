@@ -110,6 +110,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@git-cliff
+
+      - name: Generate release notes
+        run: |
+          git-cliff --current --strip header --skip-commit "$(git rev-parse HEAD)" \
+            --output "${RUNNER_TEMP}/release-notes.md"
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -130,6 +143,6 @@ jobs:
           gh release create "${TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
             --verify-tag \
-            --generate-notes \
+            --notes-file "${RUNNER_TEMP}/release-notes.md" \
             "${extra_args[@]}" \
             *.tar.gz
