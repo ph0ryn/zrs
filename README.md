@@ -41,13 +41,13 @@ Flake から直接インストールする。
 nix profile install github:ph0ryn/zrs
 ```
 
-Home Manager で導入する場合は、`flake.nix` の `inputs` に `zrs.url = "github:ph0ryn/zrs";` を追加し、モジュール側で `homeManagerModules.default` を読み込む。
+Home Manager で導入する場合は、`flake.nix` の `inputs` に `zrs-zsh.url = "github:ph0ryn/zrs";` を追加し、モジュール側で `homeManagerModules.default` を読み込む。
 既定で Zsh 統合（`enableZshIntegration`）が有効になり、`settings` で設定ファイルも生成できる。
 
 ```nix
 { inputs, ... }:
 {
-  imports = [ inputs.zrs.homeManagerModules.default ];
+  imports = [ inputs.zrs-zsh.homeManagerModules.default ];
 
   programs.zrs-zsh = {
     enable = true;
