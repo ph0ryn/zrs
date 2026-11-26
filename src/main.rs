@@ -2,10 +2,10 @@ use std::io::{self, Read, Write};
 use std::process::ExitCode;
 
 use clap::Parser;
-use zrs::cli::{BufferArgs, Cli, Command};
-use zrs::error::ZrsError;
-use zrs::protocol::Outcome;
-use zrs::{ZSH_INIT_SCRIPT, abbrev, completion, config, history, snippet, template};
+use zrs_zsh::cli::{BufferArgs, Cli, Command};
+use zrs_zsh::error::ZrsError;
+use zrs_zsh::protocol::Outcome;
+use zrs_zsh::{ZSH_INIT_SCRIPT, abbrev, completion, config, history, snippet, template};
 
 fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
@@ -20,7 +20,7 @@ fn main() -> ExitCode {
     match run(cli.command) {
         Ok(code) => ExitCode::from(code),
         Err(err) => {
-            eprintln!("zrs: {err}");
+            eprintln!("zrs-zsh: {err}");
             ExitCode::FAILURE
         }
     }

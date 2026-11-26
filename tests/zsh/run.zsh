@@ -5,7 +5,7 @@ zmodload zsh/zpty
 zmodload zsh/zselect
 
 repo_root=${0:A:h:h:h}
-binary=${1:-$repo_root/target/debug/zrs}
+binary=${1:-$repo_root/target/debug/zrs-zsh}
 export PATH="${binary:A:h}:$PATH"
 export ZRS_TEST_DIR=$(mktemp -d)
 export ZDOTDIR=$ZRS_TEST_DIR
@@ -16,7 +16,7 @@ export ZRS_HISTORY_SELECTED=$'printf "日本 {{value}}"\n二行目'
 export ZRS_REAL_FZF=$(command -v fzf)
 trap 'zpty -d test 2>/dev/null || true; rm -rf -- "$ZRS_TEST_DIR"' EXIT
 
-mkdir "$ZRS_TEST_DIR/zrs" "$ZRS_TEST_DIR/history-bin"
+mkdir "$ZRS_TEST_DIR/zrs-zsh" "$ZRS_TEST_DIR/history-bin"
 printf '%s\n' 'echo oldest' 'printf "one\
 two"' 'echo 日本 {{value}}' > "$ZRS_TEST_DIR/history"
 printf '%s\0' 'echo 日本 {{value}}' $'printf "one\ntwo"' 'echo oldest' > "$ZRS_TEST_DIR/expected-history"
@@ -38,7 +38,7 @@ done
 exec "$ZRS_REAL_FZF" "$@"
 SH
 chmod +x "$ZRS_TEST_DIR/history-bin/fzf"
-cat > "$ZRS_TEST_DIR/zrs/config.yaml" <<'YAML'
+cat > "$ZRS_TEST_DIR/zrs-zsh/config.yaml" <<'YAML'
 abbreviations:
   - keyword: gs
     expand: git status
@@ -66,8 +66,8 @@ completions:
     source: ':'
 YAML
 
-zrs init --no-keybinds > "$ZRS_TEST_DIR/widgets.zsh"
-zrs init > "$ZRS_TEST_DIR/init.zsh"
+zrs-zsh init --no-keybinds > "$ZRS_TEST_DIR/widgets.zsh"
+zrs-zsh init > "$ZRS_TEST_DIR/init.zsh"
 cat > "$ZRS_TEST_DIR/start.zsh" <<'ZSH'
 PS1='zrs-test> '
 stty rows 12 cols 100

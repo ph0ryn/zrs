@@ -60,7 +60,7 @@ Rust 側で Zsh の字句・構文パーサーを全面的に再実装しない�
 
 ### CLI サブコマンドと ZLE 境界プロトコル
 
-ZLE スクリプトはバイナリ内に `include_str!` で埋め込み、`zrs init`（および `--no-keybinds`）で出力して単一バイナリ配布を維持する。CLI サブコマンドは `init`、`validate`、および ZLE から呼び出す `expand`、`placeholder`、`snippet`、`complete` の 6 つとする。
+ZLE スクリプトはバイナリ内に `include_str!` で埋め込み、`zrs-zsh init`（および `--no-keybinds`）で出力して単一バイナリ配布を維持する。CLI サブコマンドは `init`、`validate`、および ZLE から呼び出す `expand`、`placeholder`、`snippet`、`complete` の 6 つとする。
 
 CLI サブコマンドは `init`、`validate`、および ZLE から呼び出す `expand`、`placeholder`、`snippet`、`history`、`complete` の 7 つとする。`history` 以外の対話サブコマンドは設定を読むが、`history` は設定ファイルが存在しない・壊れている場合でも動くよう YAML を一切読まない。履歴候補は ZLE 側が Zsh の `$history` パラメータ（新着順）から NUL 区切りレコードとして標準入力へ渡す。
 

@@ -38,12 +38,12 @@ try config="examples/config.yaml":
   cargo build
   tmpdir="$(mktemp -d)"
   trap 'rm -rf "$tmpdir"' EXIT
-  mkdir -p "$tmpdir/zdotdir" "$tmpdir/config/zrs"
-  cp "{{config}}" "$tmpdir/config/zrs/config.yaml"
+  mkdir -p "$tmpdir/zdotdir" "$tmpdir/config/zrs-zsh"
+  cp "{{config}}" "$tmpdir/config/zrs-zsh/config.yaml"
   cat > "$tmpdir/zdotdir/.zshrc" <<'EOF'
   autoload -Uz compinit && compinit -d "$ZDOTDIR/.zcompdump"
   PROMPT='[zrs-try] %~ %# '
-  eval "$(zrs init)"
+  eval "$(zrs-zsh init)"
   EOF
   env \
     PATH="$PWD/target/debug:$PATH" \

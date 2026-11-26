@@ -80,9 +80,9 @@ Zsh が保持するコマンド履歴を fzf で絞り込み、選択したコ�
 
 ### 既定キーバインドと初期化
 
-`zrs init` で Zsh 統合スクリプトを出力し、既定で以下のキーバインドを設定する。`zrs init --no-keybinds` を指定した場合はウィジェット定義のみを出力し、キーバインドは設定しない。
+`zrs-zsh init` で Zsh 統合スクリプトを出力し、既定で以下のキーバインドを設定する。`zrs-zsh init --no-keybinds` を指定した場合はウィジェット定義のみを出力し、キーバインドは設定しない。
 
-`.zshrc` で `eval "$(zrs init)"` を実行する。既存の Space / Enter / Tab の動作を引き継ぐため、`compinit` や `fzf-tab` など、これらのキーを設定する処理の後に実行する。`zsh-vi-mode` と併用する場合は `ZVM_INIT_MODE=sourcing` を指定してから読み込み、その後で `zrs init` を実行できる。
+`.zshrc` で `eval "$(zrs-zsh init)"` を実行する。既存の Space / Enter / Tab の動作を引き継ぐため、`compinit` や `fzf-tab` など、これらのキーを設定する処理の後に実行する。`zsh-vi-mode` と併用する場合は `ZVM_INIT_MODE=sourcing` を指定してから読み込み、その後で `zrs-zsh init` を実行できる。
 
 | キー | 動作 |
 | --- | --- |
@@ -97,9 +97,9 @@ Zsh が保持するコマンド履歴を fzf で絞り込み、選択したコ�
 
 ### 設定（YAML）
 
-設定は YAML による宣言的記述のみを扱う。構文エラー、必須項目の欠落、未知のフィールド、不正な正規表現を含む設定は黙って無視せずエラーとして報告する。設定ファイルが存在しない場合は、対話操作（略語展開・スニペット・補完）では空設定として扱いエラーを出さない一方、`zrs validate` のような明示的な検証実行ではエラーとして報告する。
+設定は YAML による宣言的記述のみを扱う。構文エラー、必須項目の欠落、未知のフィールド、不正な正規表現を含む設定は黙って無視せずエラーとして報告する。設定ファイルが存在しない場合は、対話操作（略語展開・スニペット・補完）では空設定として扱いエラーを出さない一方、`zrs-zsh validate` のような明示的な検証実行ではエラーとして報告する。
 
-- **配置パス**: `$XDG_CONFIG_HOME/zrs/config.yaml`（`$XDG_CONFIG_HOME` 未設定時は `~/.config/zrs/config.yaml`）の単一ファイル。
+- **配置パス**: `$XDG_CONFIG_HOME/zrs-zsh/config.yaml`（`$XDG_CONFIG_HOME` 未設定時は `~/.config/zrs-zsh/config.yaml`）の単一ファイル。
 - **トップレベルキー**: `abbreviations`、`snippets`、`completions` はいずれも任意（省略時は空リスト）。
 - **優先順位**: 複数の略語または補完ルールが一致した場合は、記述順の先頭を採用する。
 

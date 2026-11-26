@@ -575,7 +575,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zrs"
+name = "zrs-zsh"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",

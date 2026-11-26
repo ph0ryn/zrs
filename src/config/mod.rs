@@ -7,12 +7,12 @@ use crate::error::ZrsError;
 
 pub use validate::{Abbreviation, CompiledContext, Completion, Config, Snippet};
 
-/// Resolves `$XDG_CONFIG_HOME/zrs/config.yaml` (or `~/.config/zrs/config.yaml` when unset/empty).
+/// Resolves `$XDG_CONFIG_HOME/zrs-zsh/config.yaml` (or `~/.config/zrs-zsh/config.yaml` when unset/empty).
 pub fn default_config_path() -> Result<PathBuf, ZrsError> {
     if let Some(xdg) = std::env::var_os("XDG_CONFIG_HOME")
         && !xdg.is_empty()
     {
-        return Ok(PathBuf::from(xdg).join("zrs").join("config.yaml"));
+        return Ok(PathBuf::from(xdg).join("zrs-zsh").join("config.yaml"));
     }
 
     let home = std::env::var_os("HOME").filter(|h| !h.is_empty());
@@ -22,7 +22,7 @@ pub fn default_config_path() -> Result<PathBuf, ZrsError> {
 
     Ok(PathBuf::from(home)
         .join(".config")
-        .join("zrs")
+        .join("zrs-zsh")
         .join("config.yaml"))
 }
 

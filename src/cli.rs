@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
-#[command(name = "zrs", version, about)]
+#[command(name = "zrs-zsh", version, about)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
@@ -19,7 +19,7 @@ pub enum Command {
     },
     /// Validate configuration YAML
     Validate {
-        /// Path to config file (defaults to $XDG_CONFIG_HOME/zrs/config.yaml)
+        /// Path to config file (defaults to $XDG_CONFIG_HOME/zrs-zsh/config.yaml)
         #[arg(long)]
         config: Option<PathBuf>,
     },

@@ -5,7 +5,7 @@ zmodload zsh/datetime
 
 script_dir="${0:A:h}"
 repo_root="${script_dir:h}"
-zrs_bin="${1:-${ZRS_BIN:-${repo_root}/target/release/zrs}}"
+zrs_bin="${1:-${ZRS_BIN:-${repo_root}/target/release/zrs-zsh}}"
 warmup="${WARMUP:-10}"
 runs="${RUNS:-100}"
 
@@ -65,13 +65,13 @@ generate_config() {
 
 mkdir -p \
   "$tmpdir/none" \
-  "$tmpdir/small/zrs" \
-  "$tmpdir/standard/zrs" \
-  "$tmpdir/large/zrs"
+  "$tmpdir/small/zrs-zsh" \
+  "$tmpdir/standard/zrs-zsh" \
+  "$tmpdir/large/zrs-zsh"
 
-cp "${repo_root}/examples/config.yaml" "$tmpdir/small/zrs/config.yaml"
-generate_config "$tmpdir/standard/zrs/config.yaml" 100 20 30 20
-generate_config "$tmpdir/large/zrs/config.yaml" 300 50 100 50
+cp "${repo_root}/examples/config.yaml" "$tmpdir/small/zrs-zsh/config.yaml"
+generate_config "$tmpdir/standard/zrs-zsh/config.yaml" 100 20 30 20
+generate_config "$tmpdir/large/zrs-zsh/config.yaml" 300 50 100 50
 
 printf 'echo\0hello\0' > "$tmpdir/tok_miss.bin"
 printf 'gs\0' > "$tmpdir/tok_hit.bin"
@@ -110,7 +110,7 @@ run_hf() {
   XDG_CONFIG_HOME="$xdg" hyperfine "${args[@]}" "$cmd"
 }
 
-run_hf "baseline: zrs --version"          "$tmpdir/none"     "$zrs_bin --version"
+run_hf "baseline: zrs-zsh --version"          "$tmpdir/none"     "$zrs_bin --version"
 run_hf "expand miss [none]"               "$tmpdir/none"     "$zrs_bin expand --lbuffer='echo hello' --rbuffer=" "$tmpdir/tok_miss.bin"
 run_hf "expand miss [small 4/1/2]"        "$tmpdir/small"    "$zrs_bin expand --lbuffer='echo hello' --rbuffer=" "$tmpdir/tok_miss.bin"
 run_hf "expand miss [standard 100/30/20]" "$tmpdir/standard" "$zrs_bin expand --lbuffer='echo hello' --rbuffer=" "$tmpdir/tok_miss.bin"
@@ -168,7 +168,7 @@ print ""
 print "=== 2. Running-Zsh end-to-end latency (_zrs_expand path) ==="
 printf "%-40s %9s %9s %9s %9s\n" "Scenario" "median" "p95" "min" "max"
 print -- "--------------------------------------------------------------------------------"
-bench_zsh_path "zsh: \$(zrs --version) baseline"   "$tmpdir/none"     "echo hello" "version" 0
+bench_zsh_path "zsh: \$(zrs-zsh --version) baseline"   "$tmpdir/none"     "echo hello" "version" 0
 bench_zsh_path "zsh _zrs_expand miss [none]"        "$tmpdir/none"     "echo hello" "expand"  2
 bench_zsh_path "zsh _zrs_expand miss [small]"       "$tmpdir/small"    "echo hello" "expand"  2
 bench_zsh_path "zsh _zrs_expand miss [standard]"    "$tmpdir/standard" "echo hello" "expand"  2

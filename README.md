@@ -10,7 +10,7 @@ Space や Enter での略語展開（コンテキスト条件やコマンド評�
 
 ## Configuration
 
-設定ファイルは `$XDG_CONFIG_HOME/zrs/config.yaml`（`$XDG_CONFIG_HOME` 未設定時は `~/.config/zrs/config.yaml`）に置く。
+設定ファイルは `$XDG_CONFIG_HOME/zrs-zsh/config.yaml`（`$XDG_CONFIG_HOME` 未設定時は `~/.config/zrs-zsh/config.yaml`）に置く。
 
 `abbreviations`、`snippets`、`completions` はいずれも省略できる。複数ルールに一致した場合は記述順の先頭を使う。
 

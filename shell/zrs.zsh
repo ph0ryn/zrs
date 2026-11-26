@@ -1,5 +1,5 @@
 # zrs ZLE integration script
-# Usage: eval "$(zrs init)"
+# Usage: eval "$(zrs-zsh init)"
 
 typeset -gi _ZRS_ENABLED=${_ZRS_ENABLED:-1}
 typeset -gA _zrs_previous
@@ -8,7 +8,7 @@ _zrs_apply() {
   local response
   local -a fields
   local -i result
-  response=$(command zrs "$@" --lbuffer="$LBUFFER" --rbuffer="$RBUFFER" 2>&1)
+  response=$(command zrs-zsh "$@" --lbuffer="$LBUFFER" --rbuffer="$RBUFFER" 2>&1)
   result=$?
   case $result in
     0)
@@ -16,7 +16,7 @@ _zrs_apply() {
       if (( $#fields != 4 )) || [[ -n $fields[4] ||
         ( $fields[1] != normal && $fields[1] != placeholder ) ||
         $fields[3] != <-> ]] || (( fields[3] > ${#fields[2]} )); then
-        zle -M 'zrs: invalid buffer update'
+        zle -M 'zrs-zsh: invalid buffer update'
         return 1
       fi
       BUFFER=$fields[2]
@@ -24,7 +24,7 @@ _zrs_apply() {
       _zrs_kind=$fields[1]
       ;;
     2|3) ;;
-    *) zle -M "${response:-zrs: command failed (status $result)}" ;;
+    *) zle -M "${response:-zrs-zsh: command failed (status $result)}" ;;
   esac
   return $result
 }
@@ -117,10 +117,10 @@ _zrs_literal_space() {
 _zrs_toggle() {
   if (( _ZRS_ENABLED )); then
     _ZRS_ENABLED=0
-    zle -M 'zrs: abbreviation expansion disabled'
+    zle -M 'zrs-zsh: abbreviation expansion disabled'
   else
     _ZRS_ENABLED=1
-    zle -M 'zrs: abbreviation expansion enabled'
+    zle -M 'zrs-zsh: abbreviation expansion enabled'
   fi
 }
 

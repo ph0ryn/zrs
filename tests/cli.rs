@@ -5,7 +5,7 @@ use tempfile::{NamedTempFile, TempDir};
 
 #[test]
 fn placeholder_returns_buffer_and_character_cursor() {
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .args(["placeholder", "--lbuffer=日本", "--rbuffer={{word}}残り"])
         .assert()
         .success()
@@ -14,7 +14,7 @@ fn placeholder_returns_buffer_and_character_cursor() {
 
 #[test]
 fn init_prints_zsh_script() {
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .arg("init")
         .assert()
         .success()
@@ -23,12 +23,12 @@ fn init_prints_zsh_script() {
 
 #[test]
 fn init_installs_history_binding_only_with_keybinds() {
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .arg("init")
         .assert()
         .success()
         .stdout(predicate::str::contains("'^R' _zrs_history"));
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .args(["init", "--no-keybinds"])
         .assert()
         .success()
@@ -49,7 +49,7 @@ abbreviations:
     )
     .unwrap();
 
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .args(["validate", "--config"])
         .arg(file.path())
         .assert()
@@ -61,17 +61,17 @@ fn validate_rejects_invalid_config() {
     let file = NamedTempFile::new().unwrap();
     std::fs::write(file.path(), "unknown_field: 1\n").unwrap();
 
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .args(["validate", "--config"])
         .arg(file.path())
         .assert()
         .failure()
-        .stderr(predicate::str::contains("zrs:"));
+        .stderr(predicate::str::contains("zrs-zsh:"));
 }
 
 fn xdg_config(yaml: &str) -> TempDir {
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("zrs");
+    let path = dir.path().join("zrs-zsh");
     std::fs::create_dir(&path).unwrap();
     std::fs::write(path.join("config.yaml"), yaml).unwrap();
     dir
@@ -110,7 +110,7 @@ printf '%s\0' "$FZF_SELECTION"
 #[test]
 fn history_selects_with_initial_query_and_index_tiebreak() {
     let selected = "printf '日本 {{value}}'\nnext line";
-    let mut command = cargo_bin_cmd!("zrs");
+    let mut command = cargo_bin_cmd!("zrs-zsh");
     let fzf = mock_fzf(&mut command);
     command
         .env("FZF_SELECTION", selected)
@@ -136,7 +136,7 @@ fn history_selects_with_initial_query_and_index_tiebreak() {
 
 #[test]
 fn history_cancellation_and_empty_input_preserve_the_buffer() {
-    let mut command = cargo_bin_cmd!("zrs");
+    let mut command = cargo_bin_cmd!("zrs-zsh");
     let fzf = mock_fzf(&mut command);
     command
         .env("FZF_CANCEL", "1")
@@ -150,7 +150,7 @@ fn history_cancellation_and_empty_input_preserve_the_buffer() {
         "--read0\n--print0\n--query\nquery\n--tiebreak=index\n"
     );
 
-    let mut empty_command = cargo_bin_cmd!("zrs");
+    let mut empty_command = cargo_bin_cmd!("zrs-zsh");
     let empty_fzf = mock_fzf(&mut empty_command);
     empty_command
         .args(["history", "--lbuffer=", "--rbuffer="])
@@ -166,10 +166,10 @@ fn history_ignores_missing_and_invalid_config() {
     for config in [None, Some("unknown_field: [\n")] {
         let dir = tempfile::tempdir().unwrap();
         if let Some(yaml) = config {
-            std::fs::create_dir(dir.path().join("zrs")).unwrap();
-            std::fs::write(dir.path().join("zrs/config.yaml"), yaml).unwrap();
+            std::fs::create_dir(dir.path().join("zrs-zsh")).unwrap();
+            std::fs::write(dir.path().join("zrs-zsh/config.yaml"), yaml).unwrap();
         }
-        let mut command = cargo_bin_cmd!("zrs");
+        let mut command = cargo_bin_cmd!("zrs-zsh");
         let _fzf = mock_fzf(&mut command);
         command
             .env("XDG_CONFIG_HOME", dir.path())
@@ -185,7 +185,7 @@ fn history_ignores_missing_and_invalid_config() {
 #[test]
 fn snippet_reports_missing_fzf() {
     let config = xdg_config("snippets: [{name: example, body: example}]");
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .args(["snippet", "--lbuffer=", "--rbuffer="])
         .env("XDG_CONFIG_HOME", config.path())
         .env("PATH", config.path())
@@ -237,7 +237,7 @@ abbreviations:
             concat!("normal\0git switch branch --quiet\0", "17\0"),
         ),
     ] {
-        cargo_bin_cmd!("zrs")
+        cargo_bin_cmd!("zrs-zsh")
             .env("XDG_CONFIG_HOME", config.path())
             .args([
                 "expand",
@@ -257,7 +257,7 @@ abbreviations:
         ("echo $(foo gs", "echo\0gs\0"),
         ("git switch B", "git\0switch\0B\0"),
     ] {
-        cargo_bin_cmd!("zrs")
+        cargo_bin_cmd!("zrs-zsh")
             .env("XDG_CONFIG_HOME", config.path())
             .args(["expand", &format!("--lbuffer={left}"), "--rbuffer="])
             .write_stdin(tokens)
@@ -280,14 +280,14 @@ abbreviations:
     expand: "print -ru2 -- 'failed on purpose'; exit 7"
 "#,
     );
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .env("XDG_CONFIG_HOME", config.path())
         .args(["expand", "--lbuffer=date", "--rbuffer="])
         .write_stdin("date\0")
         .assert()
         .success()
         .stdout(concat!("normal\0today\0", "5\0"));
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .env("XDG_CONFIG_HOME", config.path())
         .args(["expand", "--lbuffer=fail", "--rbuffer="])
         .write_stdin("fail\0")
@@ -301,7 +301,7 @@ abbreviations:
 fn missing_config_is_allowed_only_for_interactive_operations() {
     let config = tempfile::tempdir().unwrap();
     for subcommand in ["expand", "snippet", "complete"] {
-        cargo_bin_cmd!("zrs")
+        cargo_bin_cmd!("zrs-zsh")
             .env("XDG_CONFIG_HOME", config.path())
             .args([subcommand, "--lbuffer=-x", "--rbuffer="])
             .write_stdin("-x\0")
@@ -310,7 +310,7 @@ fn missing_config_is_allowed_only_for_interactive_operations() {
             .stdout("")
             .stderr("");
     }
-    cargo_bin_cmd!("zrs")
+    cargo_bin_cmd!("zrs-zsh")
         .env("XDG_CONFIG_HOME", config.path())
         .arg("validate")
         .assert()
@@ -331,7 +331,7 @@ completions:
 "#,
     );
     for (left, code) in [("other ", 2), ("empty ", 3), ("fail ", 1)] {
-        cargo_bin_cmd!("zrs")
+        cargo_bin_cmd!("zrs-zsh")
             .env("XDG_CONFIG_HOME", config.path())
             .args(["complete", &format!("--lbuffer={left}"), "--rbuffer="])
             .assert()

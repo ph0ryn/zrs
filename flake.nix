@@ -21,24 +21,24 @@
       packages = forAllSystems (
         pkgs:
         let
-          zrs = pkgs.callPackage ./nix/package.nix { };
+          zrs-zsh = pkgs.callPackage ./nix/package.nix { };
         in
         {
-          inherit zrs;
-          default = zrs;
+          inherit zrs-zsh;
+          default = zrs-zsh;
         }
       );
 
       apps = forAllSystems (pkgs: {
         default = {
           type = "app";
-          program = nixpkgs.lib.getExe self.packages.${pkgs.stdenv.hostPlatform.system}.zrs;
-          inherit (self.packages.${pkgs.stdenv.hostPlatform.system}.zrs) meta;
+          program = nixpkgs.lib.getExe self.packages.${pkgs.stdenv.hostPlatform.system}.zrs-zsh;
+          inherit (self.packages.${pkgs.stdenv.hostPlatform.system}.zrs-zsh) meta;
         };
       });
 
       overlays.default = final: _prev: {
-        zrs = final.callPackage ./nix/package.nix { };
+        zrs-zsh = final.callPackage ./nix/package.nix { };
       };
 
       homeManagerModules.default = import ./nix/hm-module.nix self;
@@ -66,12 +66,12 @@
       checks = forAllSystems (
         pkgs:
         let
-          zrs = self.packages.${pkgs.stdenv.hostPlatform.system}.zrs;
+          zrs-zsh = self.packages.${pkgs.stdenv.hostPlatform.system}.zrs-zsh;
         in
         {
-          package = zrs;
+          package = zrs-zsh;
 
-          clippy = zrs.overrideAttrs (old: {
+          clippy = zrs-zsh.overrideAttrs (old: {
             pname = "${old.pname}-clippy";
             nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.clippy ];
             buildPhase = ''
@@ -86,19 +86,19 @@
             fixupPhase = "";
           });
 
-          fmt = pkgs.runCommand "zrs-fmt" { nativeBuildInputs = [ pkgs.cargo pkgs.rustfmt ]; } ''
-            cd ${zrs.src}
+          fmt = pkgs.runCommand "zrs-zsh-fmt" { nativeBuildInputs = [ pkgs.cargo pkgs.rustfmt ]; } ''
+            cd ${zrs-zsh.src}
             cargo fmt --check
             touch "$out"
           '';
 
-          zsh-syntax = pkgs.runCommand "zrs-zsh-syntax" { nativeBuildInputs = [ pkgs.zsh ]; } ''
+          zsh-syntax = pkgs.runCommand "zrs-zsh-zsh-syntax" { nativeBuildInputs = [ pkgs.zsh ]; } ''
             zsh -n ${./shell/zrs.zsh}
             touch "$out"
           '';
 
           zsh-e2e =
-            pkgs.runCommand "zrs-zsh-e2e"
+            pkgs.runCommand "zrs-zsh-zsh-e2e"
               {
                 nativeBuildInputs = [ pkgs.zsh pkgs.fzf ];
                 env = pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
@@ -106,7 +106,7 @@
                 };
               }
               ''
-                zsh -f ${./tests/zsh/run.zsh} ${nixpkgs.lib.getExe zrs}
+                zsh -f ${./tests/zsh/run.zsh} ${nixpkgs.lib.getExe zrs-zsh}
                 touch "$out"
               '';
         }
