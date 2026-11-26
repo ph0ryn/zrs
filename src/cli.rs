@@ -23,8 +23,14 @@ pub enum Command {
         #[arg(long)]
         config: Option<PathBuf>,
     },
-    /// Expand the final word using NUL-terminated Zsh tokens from stdin
-    Expand(BufferArgs),
+    /// Expand the final word using Zsh tokens from positional arguments or NUL-terminated stdin
+    Expand {
+        #[command(flatten)]
+        buffer: BufferArgs,
+        /// Zsh tokens extracted from LBUFFER (reads NUL-terminated stdin when omitted)
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        tokens: Vec<String>,
+    },
     /// Move to the next placeholder
     Placeholder(BufferArgs),
     /// Search and insert a snippet

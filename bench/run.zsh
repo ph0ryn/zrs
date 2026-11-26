@@ -138,7 +138,7 @@ bench_zsh_path() {
       response=$(command "$zrs_bin" --version 2>&1) || rc=$?
     else
       tokens=("${(z)LBUFFER}")
-      response=$(command "$zrs_bin" expand --lbuffer="$LBUFFER" --rbuffer="$RBUFFER" < <(printf '%s\0' "${tokens[@]}") 2>&1) || rc=$?
+      response=$(command "$zrs_bin" expand --lbuffer="$LBUFFER" --rbuffer="$RBUFFER" -- "${tokens[@]}" 2>&1) || rc=$?
       if (( rc == 0 )); then
         fields=("${(@0)response}")
       fi

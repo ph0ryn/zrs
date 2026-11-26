@@ -44,15 +44,23 @@ fn run(command: Command) -> Result<u8, ZrsError> {
             config::load_from_path(&path)?;
             return Ok(0);
         }
-        Command::Expand(BufferArgs { lbuffer, rbuffer }) => {
+        Command::Expand {
+            buffer: BufferArgs { lbuffer, rbuffer },
+            tokens,
+        } => {
             let cfg = config::load_interactive()?;
-            let mut tokens = String::new();
-            io::stdin().read_to_string(&mut tokens)?;
-            if !tokens.is_empty() && !tokens.ends_with('\0') {
-                return Err(ZrsError::Protocol("input tokens are not NUL-terminated"));
+            if !tokens.is_empty() {
+                let token_refs: Vec<_> = tokens.iter().map(String::as_str).collect();
+                abbrev::expand(&cfg.abbreviations, &lbuffer, &rbuffer, &token_refs)?.into()
+            } else {
+                let mut stdin_tokens = String::new();
+                io::stdin().read_to_string(&mut stdin_tokens)?;
+                if !stdin_tokens.is_empty() && !stdin_tokens.ends_with('\0') {
+                    return Err(ZrsError::Protocol("input tokens are not NUL-terminated"));
+                }
+                let token_refs: Vec<_> = stdin_tokens.split_terminator('\0').collect();
+                abbrev::expand(&cfg.abbreviations, &lbuffer, &rbuffer, &token_refs)?.into()
             }
-            let tokens: Vec<_> = tokens.split_terminator('\0').collect();
-            abbrev::expand(&cfg.abbreviations, &lbuffer, &rbuffer, &tokens)?.into()
         }
         Command::Placeholder(BufferArgs { lbuffer, rbuffer }) => {
             template::next(&lbuffer, &rbuffer).into()

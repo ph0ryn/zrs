@@ -5,10 +5,12 @@ typeset -gi _ZRS_ENABLED=${_ZRS_ENABLED:-1}
 typeset -gA _zrs_previous
 
 _zrs_apply() {
+  local subcmd=$1
+  shift
   local response
   local -a fields
   local -i result
-  response=$(command zrs-zsh "$@" --lbuffer="$LBUFFER" --rbuffer="$RBUFFER" 2>&1)
+  response=$(command zrs-zsh "$subcmd" --lbuffer="$LBUFFER" --rbuffer="$RBUFFER" "$@" 2>&1)
   result=$?
   case $result in
     0)
@@ -40,7 +42,7 @@ _zrs_expand() {
   local -a tokens
   tokens=("${(z)LBUFFER}")
   (( $#tokens )) || return 2
-  _zrs_apply expand < <(printf '%s\0' "${tokens[@]}")
+  _zrs_apply expand -- "${tokens[@]}"
 }
 
 _zrs_space() {

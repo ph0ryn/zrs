@@ -339,3 +339,45 @@ completions:
             .stdout("");
     }
 }
+
+#[test]
+fn expand_accepts_positional_tokens_including_hyphen_prefixed_values() {
+    let config = xdg_config(
+        r#"
+abbreviations:
+  - keyword: gs
+    expand: git status
+  - keyword: -x
+    expand: --extended
+    global: true
+"#,
+    );
+    cargo_bin_cmd!("zrs-zsh")
+        .env("XDG_CONFIG_HOME", config.path())
+        .args([
+            "expand",
+            "--lbuffer=sudo -u root gs",
+            "--rbuffer=",
+            "--",
+            "sudo",
+            "-u",
+            "root",
+            "gs",
+        ])
+        .assert()
+        .success()
+        .stdout(concat!("normal\0sudo -u root git status\0", "23\0"));
+
+    cargo_bin_cmd!("zrs-zsh")
+        .env("XDG_CONFIG_HOME", config.path())
+        .args([
+            "expand",
+            "--lbuffer=cmd -x",
+            "--rbuffer=",
+            "--",
+            "cmd",
+            "-x",
+        ])
+        .assert()
+        .success()
+        .stdout(concat!("normal\0cmd --extended\0", "14\0"));
