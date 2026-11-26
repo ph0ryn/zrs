@@ -1,5 +1,5 @@
 {
-  description = "Zsh abbreviation expansion, snippet insertion, and custom fuzzy completion configured in YAML";
+  description = "A blazing-fast, on-demand Zsh tool for abbreviations, snippets, history search, and custom fuzzy completion";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
