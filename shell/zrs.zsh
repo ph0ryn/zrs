@@ -120,11 +120,19 @@ _zrs_bind_defaults() {
   local -a maps=(main emacs viins)
   local -A defaults=(' ' _zrs_space '^M' _zrs_enter '^I' _zrs_complete)
 
-  # Read every binding first, since main may alias emacs or viins.
+  local -a keys=( "${(@k)defaults}" ) bindings
+  # Snapshot all bindings before updating possibly aliased maps.
+  bindings=( "${(@f)$(for map in $maps; do
+    for key in "${keys[@]}"; do
+      bindkey -M "$map" "$key" || print -r -- ""
+    done
+  done)}" )
+  local -i index=0
   for map in $maps; do
-    for key in "${(@k)defaults}"; do
+    for key in "${keys[@]}"; do
       entry="$map:$key"
-      binding=$(bindkey -M "$map" "$key") || continue
+      binding=${bindings[++index]-}
+      [[ -n $binding ]] || continue
       fields=("${(z)binding}")
       widget=${(Q)fields[2]}
       if [[ -n $widget && $widget != _zrs_* ]]; then
@@ -134,7 +142,7 @@ _zrs_bind_defaults() {
   done
 
   for map in $maps; do
-    for key in "${(@k)defaults}"; do
+    for key in "${keys[@]}"; do
       bindkey -M "$map" "$key" "$defaults[$key]"
     done
     bindkey -M "$map" '^X ' _zrs_literal_space
