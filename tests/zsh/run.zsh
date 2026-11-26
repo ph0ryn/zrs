@@ -74,6 +74,7 @@ stty rows 12 cols 100
 PATH="$ZRS_TEST_DIR/history-bin:$PATH"
 bindkey -e
 _test_tab() { LBUFFER+='[fallback]'; }
+_test_history() { LBUFFER+='[history-fallback]'; }
 _test_clear() { BUFFER=; }
 _test_space() {
   print -r -- "$WIDGET" > "$ZRS_TEST_DIR/space-widget"
@@ -85,11 +86,13 @@ _test_enter() {
 }
 _test_snapshot() { print -r -- "$BUFFER|$CURSOR" > "$ZRS_TEST_DIR/snapshot"; }
 zle -N _test_tab
+zle -N _test_history
 zle -N _test_clear
 zle -N _test_space
 zle -N _test_enter
 zle -N _test_snapshot
 bindkey '^I' _test_tab
+bindkey '^R' _test_history
 bindkey '^U' _test_clear
 bindkey ' ' _test_space
 bindkey '^M' _test_enter
@@ -238,5 +241,9 @@ snapshot $'\x15still here\x12' 'still here|10'
   print -ru2 -- 'fzf was invoked for empty history'
   exit 1
 }
+
+zpty -w -n test $'\x15'
+zpty -w test 'PATH="${$(whence -p zrs-zsh):h}"; rehash'
+snapshot $'\x15no fzf\x12' 'no fzf[history-fallback]|24'
 
 print 'ZLE and fzf checks passed'

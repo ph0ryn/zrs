@@ -97,6 +97,10 @@ _zrs_snippet() {
 
 _zrs_history() {
   emulate -L zsh
+  if (( ! $+commands[fzf] )); then
+    _zrs_fallback '^R' history-incremental-search-backward
+    return
+  fi
   local _zrs_kind
   zmodload -F zsh/parameter p:history
   (( $#history )) || return 0
