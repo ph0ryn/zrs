@@ -6,8 +6,7 @@ Space や Enter での略語展開（コンテキスト条件やコマンド評�
 
 ## Requirements
 
-- Zsh
-- スニペット選択・カスタム補完を使う場合は、別途 `fzf` をインストールして `PATH` に通す。
+- スニペット選択・カスタム補完を使う場合のみ [fzf](https://github.com/junegunn/fzf)
 
 ## Configuration
 
