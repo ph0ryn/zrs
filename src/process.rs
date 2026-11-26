@@ -1,7 +1,7 @@
 //! External commands and fzf selection.
 
 use std::fs::OpenOptions;
-use std::io::{self, Write};
+use std::io::{self, BufWriter, Write};
 use std::process::{Command, Output, Stdio};
 
 use crate::error::ZrsError;
@@ -54,10 +54,16 @@ pub fn select(
         io::ErrorKind::NotFound => ZrsError::MissingFzf,
         _ => error.into(),
     })?;
-    let mut stdin = child.stdin.take().expect("piped fzf input");
-    let input = candidates.join("\0") + "\0";
+    let stdin = child.stdin.take().expect("piped fzf input");
     let (output, written) = std::thread::scope(|scope| {
-        let writer = scope.spawn(move || stdin.write_all(input.as_bytes()));
+        let writer = scope.spawn(move || -> io::Result<()> {
+            let mut writer = BufWriter::new(stdin);
+            for candidate in candidates {
+                writer.write_all(candidate.as_bytes())?;
+                writer.write_all(b"\0")?;
+            }
+            writer.flush()
+        });
         (
             child.wait_with_output(),
             writer.join().expect("fzf input writer"),
