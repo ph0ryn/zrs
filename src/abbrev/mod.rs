@@ -25,6 +25,7 @@ pub fn expand(
     if word.is_empty() || word.contains(['\'', '"', '\\']) || context::unfinished(left) {
         return Ok(None);
     }
+    let mut combined = None;
     let matched = abbreviations.iter().find(|rule| {
         rule.keyword == word
             && match &rule.context {
@@ -36,10 +37,14 @@ pub fn expand(
                             .rbuffer
                             .as_ref()
                             .is_none_or(|pattern| pattern.is_match(right))
-                        && ctx
-                            .buffer
-                            .as_ref()
-                            .is_none_or(|pattern| pattern.is_match(&format!("{left}{right}")))
+                        && ctx.buffer.as_ref().is_none_or(|pattern| {
+                            let buffer = if right.is_empty() {
+                                left
+                            } else {
+                                combined.get_or_insert_with(|| format!("{left}{right}"))
+                            };
+                            pattern.is_match(buffer)
+                        })
                 }
                 None => rule.global || context::command_position(preceding),
             }

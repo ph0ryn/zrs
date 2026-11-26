@@ -72,6 +72,10 @@ abbreviations:
     expand: '{{}}global'
     global: true
   - keyword: B
+    expand: wrong branch
+    context:
+      buffer: ' B --force$'
+  - keyword: B
     expand: branch
     context:
       lbuffer: '^git switch $'
