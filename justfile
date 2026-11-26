@@ -16,6 +16,7 @@ test:
 zsh-check:
   zsh -n shell/zrs.zsh
   zsh -n bench/run.zsh
+  zsh -n bench/compare.zsh
   zsh -n tests/zsh/run.zsh
 
 check: fmt-check lint test zsh-check
@@ -31,6 +32,11 @@ build:
 bench *args:
   cargo build --release
   ./bench/run.zsh {{args}}
+
+# Compare zrs against zsh-abbr and zeno.zsh
+bench-compare *args:
+  cargo build --release
+  ./bench/compare.zsh {{args}}
 
 # Launch an isolated interactive zsh with the debug build of zrs
 try config="examples/config.yaml":
