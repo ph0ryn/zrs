@@ -16,6 +16,7 @@ test:
 zsh-check:
   zsh -n shell/zrs.zsh
   zsh -n bench/run.zsh
+  zsh -n tests/zsh/run.zsh
 
 check: fmt-check lint test zsh-check
 
