@@ -66,7 +66,7 @@ Home Manager で導入する場合は、`flake.nix` の `inputs` に `zrs-zsh.ur
 
 ## Features
 
-- **非常駐・高速** — 常駐デーモンを持たない Rust 製単一バイナリ。キー入力ごとのワンショット実行で、設定 100 件規模でも Zsh 経由の略語展開が約 2.5 ms で完了する。
+- **非常駐・高速** — 常駐デーモンを持たない Rust 製単一バイナリ。キー入力ごとのワンショット実行で、設定 100 件規模でも Zsh 経由の略語展開が約 2.5〜3 ms で完了する（競合比較は [benchmark.md](docs/benchmark.md) を参照）。
 - **略語展開** — `Space` や `Enter` で略語を展開する。通常展開、グローバル展開、コンテキスト条件展開、コマンド評価展開、プレースホルダーに対応する。
 - **スニペット挿入** — `^X s` で登録済みスニペットを `fzf` で検索し、カーソル位置へ挿入する。
 - **履歴検索** — `^R` で Zsh のコマンド履歴を `fzf` で絞り込み、選択したコマンドを入力行へ復元する。
@@ -108,6 +108,7 @@ completions:
 - [spec.md](docs/spec.md)
 - [architecture.md](docs/architecture.md)
 - [verification.md](docs/verification.md)
+- [benchmark.md](docs/benchmark.md)
 - [development.md](docs/development.md)
 
 ## License

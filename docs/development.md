@@ -22,6 +22,7 @@ nix develop
 | `just zsh-check` | `zsh -n shell/zrs.zsh` で ZLE スクリプトの構文を検証 |
 | `just zsh-test` | 擬似端末で ZLE のキー操作と実際の `fzf` 選択を検証 |
 | `just bench` | リリースビルドに対して [bench/run.zsh](../bench/run.zsh) で応答性を計測 |
+| `just bench-compare` | [bench/compare.zsh](../bench/compare.zsh) で `zsh-abbr`・`zeno.zsh` と比較計測 |
 | `just try` | デバッグビルドを使い、隔離された `ZDOTDIR` と [examples/config.yaml](../examples/config.yaml) で対話 Zsh を起動 |
 | `just nix-check` | `nix flake check` でサンドボックス内のビルド・テスト・静的チェックを実行 |
 | `just nix-build` | リリース用 Nix パッケージをビルド |
