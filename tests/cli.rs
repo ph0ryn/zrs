@@ -1,5 +1,6 @@
 use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
+use std::os::unix::fs::PermissionsExt;
 use tempfile::{NamedTempFile, TempDir};
 
 #[test]
@@ -18,6 +19,21 @@ fn init_prints_zsh_script() {
         .assert()
         .success()
         .stdout(predicate::str::contains("_zrs_toggle"));
+}
+
+#[test]
+fn init_installs_history_binding_only_with_keybinds() {
+    cargo_bin_cmd!("zrs")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("'^R' _zrs_history"));
+    cargo_bin_cmd!("zrs")
+        .args(["init", "--no-keybinds"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("zle -N _zrs_history"))
+        .stdout(predicate::str::contains("\n_zrs_bind_defaults\n").not());
 }
 
 #[test]
@@ -59,6 +75,111 @@ fn xdg_config(yaml: &str) -> TempDir {
     std::fs::create_dir(&path).unwrap();
     std::fs::write(path.join("config.yaml"), yaml).unwrap();
     dir
+}
+
+fn mock_fzf(command: &mut assert_cmd::Command) -> TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    let fzf = dir.path().join("fzf");
+    std::fs::write(
+        &fzf,
+        r#"#!/bin/sh
+set -eu
+printf '%s\n' "$@" > "$FZF_ARGS"
+cat > "$FZF_INPUT"
+printf invoked > "$FZF_MARKER"
+if [ "${FZF_CANCEL:-0}" = 1 ]; then
+  exit 130
+fi
+printf '%s\0' "$FZF_SELECTION"
+"#,
+    )
+    .unwrap();
+    std::fs::set_permissions(&fzf, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let mut paths = vec![dir.path().to_path_buf()];
+    paths.extend(std::env::split_paths(
+        &std::env::var_os("PATH").unwrap_or_default(),
+    ));
+    command
+        .env("PATH", std::env::join_paths(paths).unwrap())
+        .env("FZF_ARGS", dir.path().join("args"))
+        .env("FZF_INPUT", dir.path().join("input"))
+        .env("FZF_MARKER", dir.path().join("invoked"));
+    dir
+}
+
+#[test]
+fn history_selects_with_initial_query_and_index_tiebreak() {
+    let selected = "printf '日本 {{value}}'\nnext line";
+    let mut command = cargo_bin_cmd!("zrs");
+    let fzf = mock_fzf(&mut command);
+    command
+        .env("FZF_SELECTION", selected)
+        .args(["history", "--lbuffer=print 日", "--rbuffer=old suffix"])
+        .write_stdin("old command\0printf '日本 {{value}}'\nnext line\0")
+        .assert()
+        .success()
+        .stdout(concat!(
+            "normal\0printf '日本 {{value}}'\nnext line\0",
+            "31\0"
+        ));
+
+    let args = std::fs::read_to_string(fzf.path().join("args")).unwrap();
+    assert_eq!(
+        args,
+        "--read0\n--print0\n--query\nprint 日\n--tiebreak=index\n"
+    );
+    assert_eq!(
+        std::fs::read(fzf.path().join("input")).unwrap(),
+        "old command\0printf '日本 {{value}}'\nnext line\0".as_bytes()
+    );
+}
+
+#[test]
+fn history_cancellation_and_empty_input_preserve_the_buffer() {
+    let mut command = cargo_bin_cmd!("zrs");
+    let fzf = mock_fzf(&mut command);
+    command
+        .env("FZF_CANCEL", "1")
+        .args(["history", "--lbuffer=query", "--rbuffer=suffix"])
+        .write_stdin("newest\0oldest\0")
+        .assert()
+        .code(3)
+        .stdout("");
+    assert_eq!(
+        std::fs::read_to_string(fzf.path().join("args")).unwrap(),
+        "--read0\n--print0\n--query\nquery\n--tiebreak=index\n"
+    );
+
+    let mut empty_command = cargo_bin_cmd!("zrs");
+    let empty_fzf = mock_fzf(&mut empty_command);
+    empty_command
+        .args(["history", "--lbuffer=", "--rbuffer="])
+        .write_stdin(" \n\t\0")
+        .assert()
+        .code(3)
+        .stdout("");
+    assert!(!empty_fzf.path().join("invoked").exists());
+}
+
+#[test]
+fn history_ignores_missing_and_invalid_config() {
+    for config in [None, Some("unknown_field: [\n")] {
+        let dir = tempfile::tempdir().unwrap();
+        if let Some(yaml) = config {
+            std::fs::create_dir(dir.path().join("zrs")).unwrap();
+            std::fs::write(dir.path().join("zrs/config.yaml"), yaml).unwrap();
+        }
+        let mut command = cargo_bin_cmd!("zrs");
+        let _fzf = mock_fzf(&mut command);
+        command
+            .env("XDG_CONFIG_HOME", dir.path())
+            .env("FZF_SELECTION", "echo selected")
+            .args(["history", "--lbuffer=", "--rbuffer="])
+            .write_stdin("echo selected\0")
+            .assert()
+            .success()
+            .stdout(concat!("normal\0echo selected\0", "13\0"));
+    }
 }
 
 #[test]

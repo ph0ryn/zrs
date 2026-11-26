@@ -5,7 +5,7 @@ use clap::Parser;
 use zrs::cli::{BufferArgs, Cli, Command};
 use zrs::error::ZrsError;
 use zrs::protocol::Outcome;
-use zrs::{ZSH_INIT_SCRIPT, abbrev, completion, config, snippet, template};
+use zrs::{ZSH_INIT_SCRIPT, abbrev, completion, config, history, snippet, template};
 
 fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
@@ -59,6 +59,11 @@ fn run(command: Command) -> Result<u8, ZrsError> {
         }
         Command::Snippet(BufferArgs { lbuffer, rbuffer }) => {
             snippet::select(&config::load_interactive()?.snippets, &lbuffer, &rbuffer)?
+        }
+        Command::History(BufferArgs { lbuffer, rbuffer }) => {
+            let mut input = Vec::new();
+            io::stdin().read_to_end(&mut input)?;
+            history::select(&input, &lbuffer, &rbuffer)?
         }
         Command::Complete {
             buffer: BufferArgs { lbuffer, rbuffer },

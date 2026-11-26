@@ -22,7 +22,7 @@ pub fn select(
     query: &str,
     preview: Option<&str>,
     multi: bool,
-    display_fields: &[&str],
+    extra_args: &[&str],
 ) -> Result<Vec<String>, ZrsError> {
     if candidates.is_empty() {
         return Ok(Vec::new());
@@ -33,7 +33,7 @@ pub fn select(
     let mut command = Command::new("fzf");
     command
         .args(["--read0", "--print0", "--query", query])
-        .args(display_fields)
+        .args(extra_args)
         .env_remove("FZF_DEFAULT_OPTS")
         .env_remove("FZF_DEFAULT_OPTS_FILE")
         .stdin(Stdio::piped())

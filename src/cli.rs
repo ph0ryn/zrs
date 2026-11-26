@@ -29,6 +29,8 @@ pub enum Command {
     Placeholder(BufferArgs),
     /// Search and insert a snippet
     Snippet(BufferArgs),
+    /// Select a command from Zsh history provided as NUL-terminated records on stdin
+    History(BufferArgs),
     /// Select a completion for the current input
     Complete {
         #[command(flatten)]

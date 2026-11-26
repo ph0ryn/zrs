@@ -12,6 +12,7 @@ zrs (Rust CLI)
   ├── YAML config loader & validator
   ├── Abbreviation engine ──┐
   ├── Snippet engine      ──┴── Template / placeholder engine
+  ├── History selector (no config load)
   └── Completion engine
         ├── External commands (source / preview)
         └── fzf
@@ -22,7 +23,7 @@ zrs (Rust CLI)
 - **ZLE ラッパー（Zsh スクリプト）**: キー入力の捕捉、`BUFFER` / `LBUFFER` / `RBUFFER` / `CURSOR` の読み書き、標準補完へのフォールバック呼び出し。
 - **`zrs`（Rust CLI）**: YAML 設定の読み込みと検証、略語・スニペット・補完ルールの評価、共通テンプレートエンジンによるプレースホルダー展開とカーソル位置計算、外部コマンドおよび `fzf` の呼び出し。
 
-設定スキーマ上は `abbreviations` と `snippets` を別の型として分離し、略語にしか意味を持たない照合条件（`keyword`、`global`、`context` 等）を型レベルで制約する。一方で、展開結果のプレースホルダー解析とカーソル位置計算は共通モジュールにまとめる。
+設定スキーマ上は `abbreviations` と `snippets` を別の型として分離し、略語にしか意味を持たない照合条件（`keyword`、`global`、`context` 等）を型レベルで制約する。一方で、展開結果のプレースホルダー解析とカーソル位置計算は共通モジュールにまとめる。履歴選択は設定を参照せず、履歴レコードの NUL 区切りデコードと fzf 呼び出しのみを担当する。
 
 ## 実行モデル
 
@@ -61,11 +62,13 @@ Rust 側で Zsh の字句・構文パーサーを全面的に再実装しない�
 
 ZLE スクリプトはバイナリ内に `include_str!` で埋め込み、`zrs init`（および `--no-keybinds`）で出力して単一バイナリ配布を維持する。CLI サブコマンドは `init`、`validate`、および ZLE から呼び出す `expand`、`placeholder`、`snippet`、`complete` の 6 つとする。
 
+CLI サブコマンドは `init`、`validate`、および ZLE から呼び出す `expand`、`placeholder`、`snippet`、`history`、`complete` の 7 つとする。`history` 以外の対話サブコマンドは設定を読むが、`history` は設定ファイルが存在しない・壊れている場合でも動くよう YAML を一切読まない。履歴候補は ZLE 側が Zsh の `$history` パラメータ（新着順）から NUL 区切りレコードとして標準入力へ渡す。
+
 設定パス解決は環境変数 `XDG_CONFIG_HOME` と `HOME` を直接参照して行う。macOS で `~/Library/Application Support` を返す OS 既定ディレクトリ系クレート（`dirs` 等）は使用しない。
 
 ZLE 側に `jq` 依存や `eval` を持ち込まないため、境界プロトコルを次のように統一する。
 
-- **入力渡し**: `-` 始まりの入力文字列をオプションと誤認させないため、`--lbuffer=...` / `--rbuffer=...` の `=` 結合形式で渡す。`expand` 用の `${(z)LBUFFER}` トークン配列は NUL（`\0`）区切りで標準入力へ渡す。
+- **入力渡し**: `-` 始まりの入力文字列をオプションと誤認させないため、`--lbuffer=...` / `--rbuffer=...` の `=` 結合形式で渡す。`expand` 用の `${(z)LBUFFER}` トークン配列と `history` 用の `$history` レコード配列は NUL（`\0`）区切りで標準入力へ渡す。
 - **補完クエリ**: ZLE は置換対象の末尾トークンを `--word=...` で渡し、そのクォートを外した検索語を `--query=...` で渡す。
 - **終了コード**:
   - `0`: バッファ更新あり（標準出力に更新内容を返す）
@@ -80,7 +83,7 @@ ZLE 側に `jq` 依存や `eval` を持ち込まないため、境界プロト�
 
 - **ウィジェット連携**: 初期化時に `Space` / `Enter` / `Tab` の既存バインド先を退避して保持し、未展開・フォールバック時に呼び出す。再初期化時に自前の `_zrs_*` ウィジェットを退避先として上書きしないようガードし、読み込み順序への依存を最小化する。
 - **TTY 制御**: `snippet` / `complete` で `fzf` を対話起動する際、標準出力は ZLE への結果返却に専念させ、`fzf` の対話 UI は制御端末（`/dev/tty`）に接続する。
-- **候補の受け渡し**: `fzf` とは NUL 区切りで候補を受け渡す。標準出力の形式と選択操作を固定するため、この起動では `FZF_DEFAULT_OPTS` と `FZF_DEFAULT_OPTS_FILE` を参照しない。
+- **候補の受け渡し**: `fzf` とは NUL 区切りで候補を受け渡す。標準出力の形式と選択操作を固定するため、この起動では `FZF_DEFAULT_OPTS` と `FZF_DEFAULT_OPTS_FILE` を参照しない。履歴選択は `--tiebreak=index` で履歴の新着順を保ち、選択結果をクォートやプレースホルダー展開なしでバッファ全体へ復元する。
 - **文字単位のカーソル変換**: Rust 内部の文字列は UTF-8 のバイトオフセットだが、ZLE の `CURSOR` は文字単位である。マルチバイト文字を含む行でカーソル位置がずれないよう、境界で文字数へ変換する。
 - **クォーティング**: 補完で選択した候補をコマンドラインへ戻す際、空白や記号を含む値が壊れないよう Zsh 向けのシェルエスケープを施す。
 

@@ -93,6 +93,17 @@ _zrs_snippet() {
   esac
 }
 
+_zrs_history() {
+  emulate -L zsh
+  local _zrs_kind
+  zmodload -F zsh/parameter p:history
+  (( $#history )) || return 0
+  _zrs_apply history < <(printf '%s\0' "${(@)history}")
+  case $? in
+    0|3) zle reset-prompt ;;
+  esac
+}
+
 _zrs_placeholder() {
   emulate -L zsh
   local _zrs_kind
@@ -118,7 +129,7 @@ _zrs_bind_defaults() {
   local key widget map entry binding
   local -a fields
   local -a maps=(main emacs viins)
-  local -A defaults=(' ' _zrs_space '^M' _zrs_enter '^I' _zrs_complete)
+  local -A defaults=(' ' _zrs_space '^M' _zrs_enter '^I' _zrs_complete '^R' _zrs_history)
 
   local -a keys=( "${(@k)defaults}" ) bindings
   # Snapshot all bindings before updating possibly aliased maps.
@@ -155,6 +166,7 @@ _zrs_bind_defaults() {
 zle -N _zrs_space
 zle -N _zrs_enter
 zle -N _zrs_complete
+zle -N _zrs_history
 zle -N _zrs_snippet
 zle -N _zrs_placeholder
 zle -N _zrs_literal_space
