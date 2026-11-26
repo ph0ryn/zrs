@@ -70,7 +70,7 @@ _zrs_complete() {
   local _zrs_kind word=
   local -i result
   local -a tokens
-  if [[ $LBUFFER != *[[:space:]] ]]; then
+  if [[ -n $LBUFFER && $LBUFFER != *[[:space:]] ]]; then
     tokens=("${(z)LBUFFER}")
     word=${tokens[-1]}
     # (z) normalizes some operators, including newlines, to semicolons.
@@ -146,7 +146,7 @@ _zrs_bind_defaults() {
       [[ -n $binding ]] || continue
       fields=("${(z)binding}")
       widget=${(Q)fields[2]}
-      if [[ -n $widget && $widget != _zrs_* ]]; then
+      if [[ -n $widget && $widget != _zrs_* && $widget != undefined-key ]]; then
         _zrs_previous[$entry]=$widget
       fi
     done
