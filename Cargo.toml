@@ -4,7 +4,19 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.89"
 description = "Zsh abbreviation expansion, snippet insertion, and custom fuzzy completion configured in YAML"
+license = "MIT"
 repository = "https://github.com/ph0ryn/zrs"
+readme = "README.md"
+keywords = ["zsh", "zle", "abbreviation", "snippet", "fzf"]
+categories = ["command-line-utilities"]
+include = [
+  "src/**",
+  "shell/zrs.zsh",
+  "Cargo.toml",
+  "Cargo.lock",
+  "README.md",
+  "LICENSE",
+]
 
 [dependencies]
 clap = { version = "4.6", features = ["derive"] }
