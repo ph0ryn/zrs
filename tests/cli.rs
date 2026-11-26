@@ -62,6 +62,19 @@ fn xdg_config(yaml: &str) -> TempDir {
 }
 
 #[test]
+fn snippet_reports_missing_fzf() {
+    let config = xdg_config("snippets: [{name: example, body: example}]");
+    cargo_bin_cmd!("zrs")
+        .args(["snippet", "--lbuffer=", "--rbuffer="])
+        .env("XDG_CONFIG_HOME", config.path())
+        .env("PATH", config.path())
+        .assert()
+        .code(1)
+        .stdout("")
+        .stderr(predicate::str::contains("install fzf"));
+}
+
+#[test]
 fn abbreviation_rules_respect_position_order_context_and_guards() {
     let config = xdg_config(
         r#"

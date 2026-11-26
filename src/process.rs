@@ -50,7 +50,10 @@ pub fn select(
         Ok(tty) => command.stderr(tty),
         Err(_) => command.stderr(Stdio::piped()),
     };
-    let mut child = command.spawn()?;
+    let mut child = command.spawn().map_err(|error| match error.kind() {
+        io::ErrorKind::NotFound => ZrsError::MissingFzf,
+        _ => error.into(),
+    })?;
     let mut stdin = child.stdin.take().expect("piped fzf input");
     let input = candidates.join("\0") + "\0";
     let (output, written) = std::thread::scope(|scope| {

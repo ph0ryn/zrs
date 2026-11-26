@@ -7,6 +7,9 @@ pub enum ZrsError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
+    #[error("install fzf and make it available on PATH to select candidates")]
+    MissingFzf,
+
     #[error("{0} returned invalid UTF-8")]
     Encoding(&'static str),
 

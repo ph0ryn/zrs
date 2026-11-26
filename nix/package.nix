@@ -1,8 +1,6 @@
 {
   lib,
   rustPlatform,
-  makeBinaryWrapper,
-  fzf,
   zsh,
 }:
 
@@ -28,16 +26,7 @@ rustPlatform.buildRustPackage {
     lockFile = ../Cargo.lock;
   };
 
-  nativeBuildInputs = [
-    makeBinaryWrapper
-  ];
-
   nativeCheckInputs = [ zsh ];
-
-  postInstall = ''
-    wrapProgram "$out/bin/zrs" \
-      --suffix PATH : "${lib.makeBinPath [ fzf ]}"
-  '';
 
   meta = {
     description = cargoToml.package.description;
