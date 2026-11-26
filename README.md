@@ -1,12 +1,76 @@
 # zrs
 
-Zsh のコマンドライン上で、YAML で定義した略語展開・スニペット挿入・カスタムファジー補完を行うツール。
-
-Space や Enter での略語展開（コンテキスト条件やコマンド評価を含む）、プレースホルダー付きスニペットの対話挿入、外部コマンドを候補源とするファジー補完に対応する。
+Zsh のコマンドライン上で、略語展開・スニペット挿入・履歴検索・カスタムファジー補完を行うツール。
 
 ## Requirements
 
-- スニペット選択・カスタム補完を使う場合のみ [fzf](https://github.com/junegunn/fzf)
+- [fzf](https://github.com/junegunn/fzf): スニペット選択・履歴検索・カスタム補完を使う場合のみ
+
+## Installation
+
+インストール後、`.zshrc` に以下を追加する（Home Manager の Zsh 統合を使う場合は不要）。
+`compinit` や `fzf-tab` の後に配置する。`zsh-vi-mode` と併用する場合は `ZVM_INIT_MODE=sourcing` を設定して読み込んだ後に実行する。
+
+```zsh
+eval "$(zrs-zsh init)"
+```
+
+既定のキーバインドを設定せずウィジェット定義のみ行う場合は、`--no-keybinds` を渡す。
+
+```zsh
+eval "$(zrs-zsh init --no-keybinds)"
+```
+
+### Cargo
+
+Rust 1.89 以降の環境で Git リポジトリからビルド・インストールする。
+
+```sh
+cargo install --git https://github.com/ph0ryn/zrs
+```
+
+### GitHub Releases
+
+[Releases](https://github.com/ph0ryn/zrs/releases) から環境向けのアーカイブをダウンロードして展開し、バイナリを `PATH` の通ったディレクトリへ配置する。
+
+### Nix
+
+Flake から直接インストールする。
+
+```sh
+nix profile install github:ph0ryn/zrs
+```
+
+Home Manager で導入する場合は、`flake.nix` の `inputs` に `zrs.url = "github:ph0ryn/zrs";` を追加し、モジュール側で `homeManagerModules.default` を読み込む。
+既定で Zsh 統合（`enableZshIntegration`）が有効になり、`settings` で設定ファイルも生成できる。
+
+```nix
+{ inputs, ... }:
+{
+  imports = [ inputs.zrs.homeManagerModules.default ];
+
+  programs.zrs-zsh = {
+    enable = true;
+    enableZshIntegration = true;
+    settings = {
+      abbreviations = [
+        {
+          keyword = "gs";
+          expand = "git status --short --branch";
+        }
+      ];
+    };
+  };
+}
+```
+
+## Features
+
+- **略語展開** — `Space` や `Enter` で略語を展開する。通常展開、グローバル展開、コンテキスト条件展開、コマンド評価展開、プレースホルダーに対応する。
+- **スニペット挿入** — `^X s` で登録済みスニペットを `fzf` で検索し、カーソル位置へ挿入する。
+- **履歴検索** — `^R` で Zsh のコマンド履歴を `fzf` で絞り込み、選択したコマンドを入力行へ復元する。
+- **カスタムファジー補完** — `Tab` で入力行のパターンに応じた外部コマンドの出力を `fzf` で補完する。プレビュー表示と複数選択に対応する。
+- **設定検証** — `zrs-zsh validate` で YAML 設定の構文や定義を事前に検証できる。
 
 ## Configuration
 
@@ -44,3 +108,7 @@ completions:
 - [architecture.md](docs/architecture.md)
 - [verification.md](docs/verification.md)
 - [development.md](docs/development.md)
+
+## License
+
+[MIT](LICENSE)
