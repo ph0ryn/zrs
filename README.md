@@ -23,10 +23,10 @@ eval "$(zrs-zsh init --no-keybinds)"
 
 ### Cargo
 
-Rust 1.89 以降の環境で Git リポジトリからビルド・インストールする。
+Rust 1.89 以降の環境で crates.io からインストールする。
 
 ```sh
-cargo install --git https://github.com/ph0ryn/zrs
+cargo install zrs-zsh
 ```
 
 ### GitHub Releases
