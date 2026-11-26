@@ -60,9 +60,7 @@ Rust 側で Zsh の字句・構文パーサーを全面的に再実装しない�
 
 ### CLI サブコマンドと ZLE 境界プロトコル
 
-ZLE スクリプトはバイナリ内に `include_str!` で埋め込み、`zrs-zsh init`（および `--no-keybinds`）で出力して単一バイナリ配布を維持する。CLI サブコマンドは `init`、`validate`、および ZLE から呼び出す `expand`、`placeholder`、`snippet`、`complete` の 6 つとする。
-
-CLI サブコマンドは `init`、`validate`、および ZLE から呼び出す `expand`、`placeholder`、`snippet`、`history`、`complete` の 7 つとする。`history` 以外の対話サブコマンドは設定を読むが、`history` は設定ファイルが存在しない・壊れている場合でも動くよう YAML を一切読まない。履歴候補は ZLE 側が Zsh の `$history` パラメータ（新着順）から NUL 区切りレコードとして標準入力へ渡す。
+ZLE スクリプトはバイナリ内に `include_str!` で埋め込み、`zrs-zsh init`（および `--no-keybinds`）で出力して単一バイナリ配布を維持する。CLI サブコマンドは `init`、`validate`、および ZLE から呼び出す `expand`、`placeholder`、`snippet`、`history`、`complete` の 7 つとする。`history` 以外の対話サブコマンドは設定を読むが、`history` は設定ファイルが存在しない・壊れている場合でも動くよう YAML を一切読まない。履歴候補は ZLE 側が Zsh の `$history` パラメータ（新着順）から NUL 区切りレコードとして標準入力へ渡す。
 
 設定パス解決は環境変数 `XDG_CONFIG_HOME` と `HOME` を直接参照して行う。macOS で `~/Library/Application Support` を返す OS 既定ディレクトリ系クレート（`dirs` 等）は使用しない。
 
@@ -81,8 +79,8 @@ ZLE 側に `jq` 依存や `eval` を持ち込まないため、境界プロト�
 
 [spec.md](./spec.md) の共存・正確性要件を満たすため、ZLE 境界では次を扱う。
 
-- **ウィジェット連携**: 初期化時に `Space` / `Enter` / `Tab` の既存バインド先を退避して保持し、未展開・フォールバック時に呼び出す。再初期化時に自前の `_zrs_*` ウィジェットを退避先として上書きしないようガードし、読み込み順序への依存を最小化する。
-- **TTY 制御**: `snippet` / `complete` で `fzf` を対話起動する際、標準出力は ZLE への結果返却に専念させ、`fzf` の対話 UI は制御端末（`/dev/tty`）に接続する。
+- **ウィジェット連携**: 初期化時に `Space` / `Enter` / `Tab` / `^R` の既存バインド先を退避して保持し、未展開・フォールバック時に呼び出す。再初期化時に自前の `_zrs_*` ウィジェットを退避先として上書きしないようガードし、読み込み順序への依存を最小化する。
+- **TTY 制御**: `snippet` / `history` / `complete` で `fzf` を対話起動する際、標準出力は ZLE への結果返却に専念させ、`fzf` の対話 UI は制御端末（`/dev/tty`）に接続する。
 - **候補の受け渡し**: `fzf` とは NUL 区切りで候補を受け渡す。標準出力の形式と選択操作を固定するため、この起動では `FZF_DEFAULT_OPTS` と `FZF_DEFAULT_OPTS_FILE` を参照しない。履歴選択は `--tiebreak=index` で履歴の新着順を保ち、選択結果をクォートやプレースホルダー展開なしでバッファ全体へ復元する。
 - **文字単位のカーソル変換**: Rust 内部の文字列は UTF-8 のバイトオフセットだが、ZLE の `CURSOR` は文字単位である。マルチバイト文字を含む行でカーソル位置がずれないよう、境界で文字数へ変換する。
 - **クォーティング**: 補完で選択した候補をコマンドラインへ戻す際、空白や記号を含む値が壊れないよう Zsh 向けのシェルエスケープを施す。
