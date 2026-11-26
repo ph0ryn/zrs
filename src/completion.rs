@@ -12,7 +12,14 @@ pub fn complete(
     word: Option<&str>,
     query: Option<&str>,
 ) -> Result<Outcome, ZrsError> {
-    let Some(rule) = rules.iter().find(|rule| rule.pattern.is_match(left)) else {
+    let mut matched = None;
+    for rule in rules {
+        if rule.pattern.is_match(left)? {
+            matched = Some(rule);
+            break;
+        }
+    }
+    let Some(rule) = matched else {
         return Ok(Outcome::NoMatch);
     };
     let word = word.unwrap_or_else(|| left.rsplit(char::is_whitespace).next().unwrap_or(""));

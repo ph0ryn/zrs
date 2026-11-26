@@ -381,3 +381,43 @@ abbreviations:
         .assert()
         .success()
         .stdout(concat!("normal\0cmd --extended\0", "14\0"));
+}
+
+#[test]
+fn interactive_expand_compiles_regexes_lazily_while_validate_checks_all() {
+    let config = xdg_config(
+        r#"
+abbreviations:
+  - keyword: gs
+    expand: git status
+  - keyword: broken
+    expand: never
+    context:
+      lbuffer: '[unclosed'
+completions:
+  - name: broken
+    pattern: '(unclosed'
+    source: 'printf a'
+"#,
+    );
+    cargo_bin_cmd!("zrs-zsh")
+        .env("XDG_CONFIG_HOME", config.path())
+        .args(["expand", "--lbuffer=gs", "--rbuffer=", "--", "gs"])
+        .assert()
+        .success()
+        .stdout(concat!("normal\0git status\0", "10\0"));
+
+    cargo_bin_cmd!("zrs-zsh")
+        .env("XDG_CONFIG_HOME", config.path())
+        .args(["expand", "--lbuffer=broken", "--rbuffer=", "--", "broken"])
+        .assert()
+        .code(1)
+        .stderr(predicate::str::contains("invalid regex"));
+
+    cargo_bin_cmd!("zrs-zsh")
+        .env("XDG_CONFIG_HOME", config.path())
+        .arg("validate")
+        .assert()
+        .code(1)
+        .stderr(predicate::str::contains("invalid regex"));
+}

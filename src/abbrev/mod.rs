@@ -26,29 +26,42 @@ pub fn expand(
         return Ok(None);
     }
     let mut combined = None;
-    let matched = abbreviations.iter().find(|rule| {
-        rule.keyword == word
-            && match &rule.context {
-                Some(ctx) => {
-                    ctx.lbuffer
-                        .as_ref()
-                        .is_none_or(|pattern| pattern.is_match(prefix))
-                        && ctx
-                            .rbuffer
-                            .as_ref()
-                            .is_none_or(|pattern| pattern.is_match(right))
-                        && ctx.buffer.as_ref().is_none_or(|pattern| {
+    let mut matched = None;
+    for rule in abbreviations {
+        if rule.keyword != word {
+            continue;
+        }
+        let is_match = match &rule.context {
+            Some(ctx) => {
+                let lbuf_ok = match &ctx.lbuffer {
+                    Some(pattern) => pattern.is_match(prefix)?,
+                    None => true,
+                };
+                let rbuf_ok = lbuf_ok
+                    && match &ctx.rbuffer {
+                        Some(pattern) => pattern.is_match(right)?,
+                        None => true,
+                    };
+                rbuf_ok
+                    && match &ctx.buffer {
+                        Some(pattern) => {
                             let buffer = if right.is_empty() {
                                 left
                             } else {
                                 combined.get_or_insert_with(|| format!("{left}{right}"))
                             };
-                            pattern.is_match(buffer)
-                        })
-                }
-                None => rule.global || context::command_position(preceding),
+                            pattern.is_match(buffer)?
+                        }
+                        None => true,
+                    }
             }
-    });
+            None => rule.global || context::command_position(preceding),
+        };
+        if is_match {
+            matched = Some(rule);
+            break;
+        }
+    }
     let Some(rule) = matched else {
         return Ok(None);
     };

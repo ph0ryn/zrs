@@ -35,14 +35,16 @@ pub fn load_from_path(path: &Path) -> Result<Config, ZrsError> {
 }
 
 pub fn load_interactive() -> Result<Config, ZrsError> {
-    match load_from_path(&default_config_path()?) {
-        Err(ZrsError::ConfigRead { source, .. })
-            if source.kind() == std::io::ErrorKind::NotFound =>
-        {
-            Ok(Config::default())
+    let path = default_config_path()?;
+    let raw = match std::fs::read_to_string(&path) {
+        Ok(raw) => raw,
+        Err(source) if source.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(Config::default());
         }
-        result => result,
-    }
+        Err(source) => return Err(ZrsError::ConfigRead { path, source }),
+    };
+    let parsed: schema::RawConfig = serde_saphyr::from_str(&raw)?;
+    validate::validate_structure(parsed)
 }
 
 pub fn parse_and_validate(yaml: &str) -> Result<Config, ZrsError> {
@@ -77,6 +79,32 @@ abbreviations:
     global: true
     context:
       lbuffer: '^git\s+'
+"#;
+        let err = parse_and_validate(yaml).unwrap_err();
+        assert!(matches!(err, ZrsError::ConfigValidation(_)));
+    }
+
+    #[test]
+    fn rejects_invalid_abbreviation_keywords() {
+        for keyword in ["git s", "a\tb", "'gs'", "\"gs\"", "\\gs"] {
+            let yaml =
+                format!("abbreviations:\n  - keyword: {keyword:?}\n    expand: git status\n");
+            let err = parse_and_validate(&yaml).unwrap_err();
+            assert!(
+                matches!(err, ZrsError::ConfigValidation(_)),
+                "expected validation error for {keyword:?}, got {err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_empty_completion_preview() {
+        let yaml = r#"
+completions:
+  - name: test
+    pattern: '^test '
+    source: 'printf a'
+    preview: ''
 "#;
         let err = parse_and_validate(yaml).unwrap_err();
         assert!(matches!(err, ZrsError::ConfigValidation(_)));
