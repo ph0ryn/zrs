@@ -15,6 +15,7 @@ test:
 
 zsh-check:
   zsh -n shell/zrs.zsh
+  zsh -n bench/run.zsh
 
 check: fmt-check lint test zsh-check
 
@@ -24,6 +25,11 @@ zsh-test:
 
 build:
   cargo build --release
+
+# Measure release binary and running-zsh expand latency
+bench *args:
+  cargo build --release
+  ./bench/run.zsh {{args}}
 
 # Launch an isolated interactive zsh with the debug build of zrs
 try config="examples/config.yaml":
