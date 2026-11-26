@@ -31,6 +31,7 @@ rustPlatform.buildRustPackage {
   meta = {
     description = cargoToml.package.description;
     homepage = cargoToml.package.repository;
+    license = lib.licenses.mit;
     mainProgram = "zrs-zsh";
     platforms = lib.platforms.unix;
   };
